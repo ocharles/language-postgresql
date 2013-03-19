@@ -14,7 +14,7 @@ import Text.Parser.Token
 data Statement =
     AlterEventTrigger Identifier TriggerEnable
   | AlterDatabase Identifier AlterDatabaseBody
-  | AlterDatabaseSet Identifier [Setting]
+  | AlterDatabaseSet Identifier Setting
   | AlterDefaultPrivileges
   | AlterDomain
   | AlterEnum
@@ -145,6 +145,10 @@ data Setting =
     TransactionMode [TransactionMode]
   | SessionCharacteristics [TransactionMode]
   | SetVariable Identifier VariableSetting
+  | Reset ResetTarget
+  deriving (Eq, Show)
+
+data ResetTarget = Variable Identifier | All
   deriving (Eq, Show)
 
 data VariableSetting = Default | SettingList [VariableSettingValue] | Current
@@ -187,14 +191,13 @@ alterDatabase =
 alterDatabaseSet :: TokenParsing m => m Statement
 alterDatabaseSet =
   AlterDatabaseSet <$> (traverse symbol (words "ALTER DATABASE") *> identifier)
-                   <*> (symbol "SET" *> some setRest) -- <|> variableReset
+                   <*> ((symbol "SET" *> setRest) <|> variableReset)
  where
   setRest = asum [ transactionMode
                  , sessionCharacteristics
                  , try varTo
 		 , varFromCurrent
 		 , timeZone
-		 , catalog
 		 , schema
 		 , names
 		 , role
@@ -237,16 +240,27 @@ alterDatabaseSet =
 
       varFromCurrent = SetVariable <$> varName <*> (Current <$ traverse symbol (words "FROM CURRENT"))
 
-      timeZone = empty
-      catalog = empty
-      schema = empty
-      names = empty
-      role = empty
-      sessionAuth = empty
-      xml = empty
-      snapshot = empty
+      timeZone = empty -- TODO equiv. to SET timezone =
 
---  variableReset = empty
+      schema = empty -- TODO equiv. to SET search_path =
+
+      names = empty -- TODO equiv. to SET client_encoding =
+
+      role = empty -- TODO equiv. to SET role =
+
+      sessionAuth = empty -- TODO equiv. to SET session_authorization =
+
+      xml = empty -- TODO equiv. to SET xmloption =
+
+      snapshot = empty -- TODO
+
+  variableReset = symbol "RESET" *>
+    (Reset <$> asum [ All <$ symbol "ALL"
+                    , Variable "timezone" <$ traverse symbol (words "TIME ZONE")
+                    , Variable "transaction_isolation" <$ traverse symbol (words "TRANSACTION ISOLATION LEVEL")
+                    , Variable "session_authorization" <$ traverse symbol (words "SESSION AUTHORIZATION")
+                    , Variable <$> identifier
+                    ])
 
 
 varName :: TokenParsing m => m Identifier
