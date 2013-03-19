@@ -141,13 +141,16 @@ data AlterDatabaseSetting = ConnectionLimit Integer
 data ConnectionLimit = Limit Int | NoLimit
   deriving (Eq, Show)
 
-data Setting = SetVariable Identifier [VariableSetting] | TransactionMode [TransactionMode]
+data Setting =
+    SetVariable Identifier [VariableSetting]
+  | TransactionMode [TransactionMode]
+  | SessionCharacteristics [TransactionMode]
   deriving (Eq, Show)
 
 data VariableSetting = Bool Bool | String String
   deriving (Eq, Show)
 
-data TransactionMode = IsolationLevel IsolationLevel | ReadOnly | ReadWrite | Deferrable | NotDeferrable
+data TransactionMode = IsolationLevel IsolationLevel | ReadWrite Bool | Deferrable Bool
   deriving (Eq, Show)
 
 data IsolationLevel = ReadUncommitted | ReadCommitted | RepeatableRead | Serializable
@@ -198,10 +201,16 @@ alterDatabaseSet =
 		 , snapshot
 		 ]
     where
-      transactionMode = TransactionMode <$>
-          (symbol "TRANSACTION" *> sepBy1 transactionModeItem (void comma <|> void whiteSpace))
+      transactionModes = sepBy1 transactionModeItem (void comma <|> void whiteSpace)
         where
-          transactionModeItem = traverse symbol (words "ISOLATION LEVEL") *> isolationLevel
+          transactionModeItem = asum [ traverse symbol (words "ISOLATION LEVEL") *> isolationLevel
+                                     , ReadWrite <$> (symbol "READ" *> asum [ True <$ symbol "WRITE"
+                                                                            , False <$ symbol "ONLY"
+                                                                            ])
+                                     , Deferrable <$> asum [ True <$ symbol "DEFERRABLE"
+                                                           , False <$ traverse symbol (words "NOT DEFERRABLE")
+                                                           ]
+                                     ]
             where
               isolationLevel = IsolationLevel <$> asum [ try (ReadUncommitted <$ traverse symbol (words "READ UNCOMMITTED"))
                                                        , ReadCommitted <$ traverse symbol (words "READ COMMITTED")
@@ -209,7 +218,9 @@ alterDatabaseSet =
                                                        , Serializable <$ symbol "SERIALIZABLE"
                                                        ]
 
-      sessionCharacteristics = empty
+      transactionMode = TransactionMode <$> (symbol "TRANSACTION" *> transactionModes)
+      sessionCharacteristics = SessionCharacteristics <$>
+        (traverse symbol (words "SESSION CHARACTERISTICS") *> transactionModes)
 
       varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> varList
         where
