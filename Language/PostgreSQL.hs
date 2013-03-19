@@ -142,12 +142,15 @@ data ConnectionLimit = Limit Int | NoLimit
   deriving (Eq, Show)
 
 data Setting =
-    SetVariable Identifier [VariableSetting]
-  | TransactionMode [TransactionMode]
+    TransactionMode [TransactionMode]
   | SessionCharacteristics [TransactionMode]
+  | SetVariable Identifier VariableSetting
   deriving (Eq, Show)
 
-data VariableSetting = Bool Bool | String String
+data VariableSetting = Default | SettingList [VariableSettingValue]
+  deriving (Eq, Show)
+
+data VariableSettingValue = Bool Bool | String String
   deriving (Eq, Show)
 
 data TransactionMode = IsolationLevel IsolationLevel | ReadWrite Bool | Deferrable Bool
@@ -184,12 +187,11 @@ alterDatabase =
 alterDatabaseSet :: TokenParsing m => m Statement
 alterDatabaseSet =
   AlterDatabaseSet <$> (traverse symbol (words "ALTER DATABASE") *> identifier)
-                   <*> (symbol "SET" *> some setRest) <|> variableReset
+                   <*> (symbol "SET" *> some setRest) -- <|> variableReset
  where
   setRest = asum [ transactionMode
                  , sessionCharacteristics
                  , varTo
-                 , varDefault
 		 , varFromCurrent
 		 , timeZone
 		 , catalog
@@ -219,19 +221,21 @@ alterDatabaseSet =
                                                        ]
 
       transactionMode = TransactionMode <$> (symbol "TRANSACTION" *> transactionModes)
+
       sessionCharacteristics = SessionCharacteristics <$>
         (traverse symbol (words "SESSION CHARACTERISTICS") *> transactionModes)
 
-      varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> varList
+      varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> (def <|> varList)
         where
-          varList = commaSep1 (bool <|> stringLit)
+          def = Default <$ symbol "DEFAULT"
+          varList = SettingList <$> commaSep1 (bool <|> stringLit)
             where
               bool = Bool <$> asum [ True <$ (symbol "TRUE" <|> symbol "ON")
                                    , False <$ (symbol "FALSE" <|> symbol "OFF")
                                    ]
               stringLit = String <$> value
 
-      varDefault = empty
+
       varFromCurrent = empty
       timeZone = empty
       catalog = empty
@@ -242,7 +246,7 @@ alterDatabaseSet =
       xml = empty
       snapshot = empty
 
-  variableReset = empty
+--  variableReset = empty
 
 
 varName :: TokenParsing m => m Identifier
