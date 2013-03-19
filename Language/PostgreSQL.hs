@@ -147,7 +147,7 @@ data Setting =
   | SetVariable Identifier VariableSetting
   deriving (Eq, Show)
 
-data VariableSetting = Default | SettingList [VariableSettingValue]
+data VariableSetting = Default | SettingList [VariableSettingValue] | Current
   deriving (Eq, Show)
 
 data VariableSettingValue = Bool Bool | String String
@@ -191,7 +191,7 @@ alterDatabaseSet =
  where
   setRest = asum [ transactionMode
                  , sessionCharacteristics
-                 , varTo
+                 , try varTo
 		 , varFromCurrent
 		 , timeZone
 		 , catalog
@@ -235,8 +235,8 @@ alterDatabaseSet =
                                    ]
               stringLit = String <$> value
 
+      varFromCurrent = SetVariable <$> varName <*> (Current <$ traverse symbol (words "FROM CURRENT"))
 
-      varFromCurrent = empty
       timeZone = empty
       catalog = empty
       schema = empty

@@ -23,6 +23,7 @@ main = defaultMain $
     , (alterDatabaseSet, "ALTER DATABASE foo SET SESSION CHARACTERISTICS READ ONLY NOT DEFERRABLE", AlterDatabaseSet "foo" [SessionCharacteristics [ReadWrite False, Deferrable False]])
     , (alterDatabaseSet, "ALTER DATABASE foo SET waffle TO 'syrup'", AlterDatabaseSet "foo" [SetVariable "waffle" (SettingList [String "syrup"])])
     , (alterDatabaseSet, "ALTER DATABASE foo SET waffle = DEFAULT", AlterDatabaseSet "foo" [SetVariable "waffle" Default])
+    , (alterDatabaseSet, "ALTER DATABASE foo SET waffle FROM CURRENT", AlterDatabaseSet "foo" [SetVariable "waffle" Current])
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
