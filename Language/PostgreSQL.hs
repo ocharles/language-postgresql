@@ -141,10 +141,16 @@ data AlterDatabaseSetting = ConnectionLimit Integer
 data ConnectionLimit = Limit Int | NoLimit
   deriving (Eq, Show)
 
-data Setting = SetVariable Identifier [VariableSetting]
+data Setting = SetVariable Identifier [VariableSetting] | TransactionMode [TransactionMode]
   deriving (Eq, Show)
 
 data VariableSetting = Bool Bool | String String
+  deriving (Eq, Show)
+
+data TransactionMode = IsolationLevel IsolationLevel | ReadOnly | ReadWrite | Deferrable | NotDeferrable
+  deriving (Eq, Show)
+
+data IsolationLevel = ReadUncommitted | ReadCommitted | RepeatableRead | Serializable
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -191,28 +197,39 @@ alterDatabaseSet =
 		 , xml
 		 , snapshot
 		 ]
-    where transactionMode = empty
-          sessionCharacteristics = empty
+    where
+      transactionMode = TransactionMode <$>
+          (symbol "TRANSACTION" *> sepBy1 transactionModeItem (void comma <|> void whiteSpace))
+        where
+          transactionModeItem = traverse symbol (words "ISOLATION LEVEL") *> isolationLevel
+            where
+              isolationLevel = IsolationLevel <$> asum [ try (ReadUncommitted <$ traverse symbol (words "READ UNCOMMITTED"))
+                                                       , ReadCommitted <$ traverse symbol (words "READ COMMITTED")
+                                                       , RepeatableRead <$ traverse symbol (words "REPEATABLE READ")
+                                                       , Serializable <$ symbol "SERIALIZABLE"
+                                                       ]
 
-	  varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> varList
-	   where
-	    varList = commaSep1 (bool <|> stringLit)
-	     where
-	      bool = Bool <$> asum [ True <$ (symbol "TRUE" <|> symbol "ON")
-	        	           , False <$ (symbol "FALSE" <|> symbol "OFF")
-				   ]
-	      stringLit = String <$> value
+      sessionCharacteristics = empty
 
-	  varDefault = empty
-	  varFromCurrent = empty
-	  timeZone = empty
-	  catalog = empty
-	  schema = empty
-	  names = empty
-	  role = empty
-	  sessionAuth = empty
-	  xml = empty
-	  snapshot = empty
+      varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> varList
+        where
+          varList = commaSep1 (bool <|> stringLit)
+            where
+              bool = Bool <$> asum [ True <$ (symbol "TRUE" <|> symbol "ON")
+                                   , False <$ (symbol "FALSE" <|> symbol "OFF")
+                                   ]
+              stringLit = String <$> value
+
+      varDefault = empty
+      varFromCurrent = empty
+      timeZone = empty
+      catalog = empty
+      schema = empty
+      names = empty
+      role = empty
+      sessionAuth = empty
+      xml = empty
+      snapshot = empty
 
   variableReset = empty
 

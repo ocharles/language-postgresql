@@ -18,6 +18,7 @@ main = defaultMain $
     , (alterDatabase, "ALTER DATABASE foo SET TABLESPACE buzz", AlterDatabase "foo" (SetTableSpace "buzz"))
 
     , (alterDatabaseSet, "ALTER DATABASE foo SET waffle TO 'syrup'", AlterDatabaseSet "foo" [SetVariable "waffle" [String "syrup"]])
+    , (alterDatabaseSet, "ALTER DATABASE foo SET TRANSACTION ISOLATION LEVEL SERIALIZABLE ISOLATION LEVEL READ COMMITTED", AlterDatabaseSet "foo" [TransactionMode [IsolationLevel Serializable, IsolationLevel ReadCommitted]])
 
     ]
 
