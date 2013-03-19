@@ -17,6 +17,8 @@ main = defaultMain $
     , (alterDatabase, "ALTER DATABASE foo WITH CONNECTION LIMIT = -1", AlterDatabase "foo" (AlterDatabaseSetting [ConnectionLimit (-1)]))
     , (alterDatabase, "ALTER DATABASE foo SET TABLESPACE buzz", AlterDatabase "foo" (SetTableSpace "buzz"))
 
+    , (alterDatabaseSet, "ALTER DATABASE foo SET waffle TO 'syrup'", AlterDatabaseSet "foo" [SetVariable "waffle" [String "syrup"]])
+
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

@@ -2,7 +2,9 @@ module Language.PostgreSQL where
 
 import Prelude
 import Control.Applicative
-import Data.Foldable (traverse_)
+import Control.Monad (void)
+import Data.Foldable (asum, traverse_)
+import Data.Monoid (mappend, mconcat)
 import Data.Traversable (mapM, sequenceA, traverse)
 import Text.Parser.Char
 import Text.Parser.Combinators
@@ -12,7 +14,7 @@ import Text.Parser.Token
 data Statement =
     AlterEventTrigger Identifier TriggerEnable
   | AlterDatabase Identifier AlterDatabaseBody
-  | AlterDatabaseSet Identifier SetResetClause
+  | AlterDatabaseSet Identifier [Setting]
   | AlterDefaultPrivileges
   | AlterDomain
   | AlterEnum
@@ -139,9 +141,11 @@ data AlterDatabaseSetting = ConnectionLimit Integer
 data ConnectionLimit = Limit Int | NoLimit
   deriving (Eq, Show)
 
-data SetResetClause = SetResetClause
+data Setting = SetVariable Identifier [VariableSetting]
   deriving (Eq, Show)
 
+data VariableSetting = Bool Bool | String String
+  deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
 alterEventTrigger =
@@ -167,6 +171,54 @@ alterDatabase =
 
   setTableSpace = SetTableSpace <$> (traverse symbol (words "SET TABLESPACE") *> identifier)
 
+
+alterDatabaseSet :: TokenParsing m => m Statement
+alterDatabaseSet =
+  AlterDatabaseSet <$> (traverse symbol (words "ALTER DATABASE") *> identifier)
+                   <*> (symbol "SET" *> some setRest) <|> variableReset
+ where
+  setRest = asum [ transactionMode
+                 , sessionCharacteristics
+                 , varTo
+                 , varDefault
+		 , varFromCurrent
+		 , timeZone
+		 , catalog
+		 , schema
+		 , names
+		 , role
+		 , sessionAuth
+		 , xml
+		 , snapshot
+		 ]
+    where transactionMode = empty
+          sessionCharacteristics = empty
+
+	  varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> varList
+	   where
+	    varList = commaSep1 (bool <|> stringLit)
+	     where
+	      bool = Bool <$> asum [ True <$ (symbol "TRUE" <|> symbol "ON")
+	        	           , False <$ (symbol "FALSE" <|> symbol "OFF")
+				   ]
+	      stringLit = String <$> value
+
+	  varDefault = empty
+	  varFromCurrent = empty
+	  timeZone = empty
+	  catalog = empty
+	  schema = empty
+	  names = empty
+	  role = empty
+	  sessionAuth = empty
+	  xml = empty
+	  snapshot = empty
+
+  variableReset = empty
+
+
+varName :: TokenParsing m => m Identifier
+varName = mconcat <$> sepBy1 identifier (char '.')
 
 type Identifier = String
 
@@ -247,10 +299,10 @@ type Identifier = String
 --     <*> parens (commaSep identifier)
 --     <*> (symbol "VALUES" *> commaSep1 (Tuple <$> parens (commaSep1 value)))
 
--- value :: TokenParsing m => m Value
--- value = String <$> between (char '\'') (char '\'') strParser
---   where
---     strParser = many (noneOf "'")
+value :: TokenParsing m => m String
+value = between (char '\'') (char '\'') strParser
+ where
+  strParser = many (noneOf "'")
 
 identifier :: TokenParsing m => m Identifier
 identifier = token (concat <$> sequenceA [ pure <$> letter
