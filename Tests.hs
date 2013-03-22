@@ -25,7 +25,7 @@ main = defaultMain $
     , (alterDatabaseSet, "ALTER DATABASE foo SET waffle = DEFAULT", AlterDatabaseSet "foo" (SetVariable "waffle" Default))
     , (alterDatabaseSet, "ALTER DATABASE foo SET waffle FROM CURRENT", AlterDatabaseSet "foo" (SetVariable "waffle" Current))
     , (alterDatabaseSet, "ALTER DATABASE foo RESET waffle", AlterDatabaseSet "foo" (Reset (Variable "waffle")))
-    , (alterDatabaseSet, "ALTER DATABASE foo RESET ALL", AlterDatabaseSet "foo" (Reset All))
+    , (alterDatabaseSet, "ALTER DATABASE foo RESET ALL", AlterDatabaseSet "foo" (Reset ResetAll))
 
     , (analyze, "ANALYZE", Analyze Quiet Everything)
     , (analyze, "ANALYZE VERBOSE", Analyze Verbose Everything)
@@ -33,6 +33,9 @@ main = defaultMain $
     , (analyze, "ANALYZE VERBOSE foo (bar, baz)", Analyze Verbose (Relation "foo" (Just ["bar", "baz"])))
 
     , (checkPoint, "CHECKPOINT", CheckPoint)
+
+    , (closePortal, "CLOSE foo", ClosePortal (Cursor "foo"))
+    , (closePortal, "CLOSE ALL", ClosePortal CloseAll)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

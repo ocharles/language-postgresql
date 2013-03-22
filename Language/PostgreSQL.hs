@@ -41,8 +41,8 @@ data Statement =
   | AlterUser -- TODO
   | Analyze Verbosity AnalyzeScope
   | CheckPoint
-  | ClosePortal -- TODO (til end)
-  | Cluster
+  | ClosePortal CloseTarget
+  | Cluster -- TODO (til end)
   | Comment
   | ConstraintSet
   | Copy
@@ -150,7 +150,7 @@ data Setting =
   | Reset ResetTarget
   deriving (Eq, Show)
 
-data ResetTarget = Variable Identifier | All
+data ResetTarget = Variable Identifier | ResetAll
   deriving (Eq, Show)
 
 data VariableSetting = Default | SettingList [VariableSettingValue] | Current
@@ -169,6 +169,9 @@ data Verbosity = Verbose | Quiet
   deriving (Eq, Show)
 
 data AnalyzeScope = Everything | Relation Identifier (Maybe [Identifier])
+  deriving (Eq, Show)
+
+data CloseTarget = Cursor Identifier | CloseAll
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -263,7 +266,7 @@ alterDatabaseSet =
       snapshot = empty -- TODO
 
   variableReset = symbol "RESET" *>
-    (Reset <$> asum [ All <$ symbol "ALL"
+    (Reset <$> asum [ ResetAll <$ symbol "ALL"
                     , Variable "timezone" <$ traverse symbol (words "TIME ZONE")
                     , Variable "transaction_isolation" <$ traverse symbol (words "TRANSACTION ISOLATION LEVEL")
                     , Variable "session_authorization" <$ traverse symbol (words "SESSION AUTHORIZATION")
@@ -303,3 +306,9 @@ analyze = Analyze <$> (symbol "ANALYZE" *> ( (Verbose <$ symbol "VERBOSE") <|> p
 
 checkPoint :: TokenParsing m => m Statement
 checkPoint = CheckPoint <$ symbol "CHECKPOINT"
+
+
+closePortal :: TokenParsing m => m Statement
+closePortal = ClosePortal <$> (symbol "CLOSE" *> asum [ CloseAll <$ symbol "ALL"
+                                                      , Cursor <$> identifier
+                                                      ])
