@@ -31,6 +31,8 @@ main = defaultMain $
     , (analyze, "ANALYZE VERBOSE", Analyze Verbose Everything)
     , (analyze, "ANALYZE VERBOSE foo", Analyze Verbose (Relation "foo" Nothing))
     , (analyze, "ANALYZE VERBOSE foo (bar, baz)", Analyze Verbose (Relation "foo" (Just ["bar", "baz"])))
+
+    , (checkPoint, "CHECKPOINT", CheckPoint)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

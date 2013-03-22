@@ -18,30 +18,30 @@ data Statement =
   | AlterDatabase Identifier AlterDatabaseBody
   | AlterDatabaseSet Identifier Setting
   | AlterDefaultPrivileges -- TODO
-  | AlterDomain
-  | AlterEnum
-  | AlterExtension
-  | AlterExtensionContents
-  | AlterForeignDataWrapper
-  | AlterForeignServer
-  | AlterForeignTable
-  | AlterFunction
-  | AlterGroup
-  | AlterObject
-  | AlterOwner
-  | AlterSequence
-  | AlterTable
-  | AlterCompositeType
-  | AlterRoleSet
-  | AlterRole
-  | AlterTextSearchConfiguration
-  | AlterTextSearchDictionary
-  | AlterUserMapping
-  | AlterUserSet
-  | AlterUser
+  | AlterDomain -- TODO
+  | AlterEnum -- TODO
+  | AlterExtension -- TODO
+  | AlterExtensionContents -- TODO
+  | AlterForeignDataWrapper -- TODO
+  | AlterForeignServer -- TODO
+  | AlterForeignTable -- TODO
+  | AlterFunction -- TODO
+  | AlterGroup -- TODO
+  | AlterObject -- TODO
+  | AlterOwner -- TODO
+  | AlterSequence -- TODO
+  | AlterTable -- TODO
+  | AlterCompositeType -- TODO
+  | AlterRoleSet -- TODO
+  | AlterRole -- TODO
+  | AlterTextSearchConfiguration -- TODO
+  | AlterTextSearchDictionary -- TODO
+  | AlterUserMapping -- TODO
+  | AlterUserSet -- TODO
+  | AlterUser -- TODO
   | Analyze Verbosity AnalyzeScope
   | CheckPoint
-  | ClosePortal
+  | ClosePortal -- TODO (til end)
   | Cluster
   | Comment
   | ConstraintSet
@@ -299,3 +299,7 @@ identifier = token (concat <$> sequenceA [ pure <$> letter
 analyze :: TokenParsing m => m Statement
 analyze = Analyze <$> (symbol "ANALYZE" *> ( (Verbose <$ symbol "VERBOSE") <|> pure Quiet))
                   <*> ( (Relation <$> identifier <*> optional (parens (commaSep identifier)))  <|> pure Everything)
+
+
+checkPoint :: TokenParsing m => m Statement
+checkPoint = CheckPoint <$ symbol "CHECKPOINT"
