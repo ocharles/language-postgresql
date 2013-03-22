@@ -11,11 +11,13 @@ import Text.Parser.Combinators
 import Text.Parser.Token
 
 --------------------------------------------------------------------------------
+type Identifier = String
+
 data Statement =
     AlterEventTrigger Identifier TriggerEnable
   | AlterDatabase Identifier AlterDatabaseBody
   | AlterDatabaseSet Identifier Setting
-  | AlterDefaultPrivileges
+  | AlterDefaultPrivileges -- TODO
   | AlterDomain
   | AlterEnum
   | AlterExtension
@@ -37,7 +39,7 @@ data Statement =
   | AlterUserMapping
   | AlterUserSet
   | AlterUser
-  | Analyze
+  | Analyze Verbosity AnalyzeScope
   | CheckPoint
   | ClosePortal
   | Cluster
@@ -163,6 +165,12 @@ data TransactionMode = IsolationLevel IsolationLevel | ReadWrite Bool | Deferrab
 data IsolationLevel = ReadUncommitted | ReadCommitted | RepeatableRead | Serializable
   deriving (Eq, Show)
 
+data Verbosity = Verbose | Quiet
+  deriving (Eq, Show)
+
+data AnalyzeScope = Everything | Relation Identifier (Maybe [Identifier])
+  deriving (Eq, Show)
+
 alterEventTrigger :: TokenParsing m => m Statement
 alterEventTrigger =
   AlterEventTrigger <$> (traverse symbol (words "ALTER EVENT TRIGGER") *> identifier)
@@ -262,88 +270,21 @@ alterDatabaseSet =
                     , Variable <$> identifier
                     ])
 
+-- TODO
+-- alterDefaultPrivileges :: TokenParsing m => m Statement
+-- alterDefaultPrivileges =
+--   AlterDefaultPrivileges <$> (traverse symbol (words "ALTER DEFAULT PRIVILEGES") *> defAclOptions)
+--                          <*> defAclAction
+--  where
+--   defAclOptions = sepBy defAclOption whiteSpace
+--    where
+--     defAclOption = asum [ IN SCHEMA
+--                         , FOR ROLE
+--                         , FOR USER
+--                         ]
 
 varName :: TokenParsing m => m Identifier
 varName = mconcat <$> sepBy1 identifier (char '.')
-
-type Identifier = String
-
--- type QualifiedName = String
-
--- type Type = String
-
--- --------------------------------------------------------------------------------
--- data Abort = AbortWork | AbortTransaction
---   deriving (Show)
-
--- abort :: TokenParsing m => m Abort
--- abort = symbol "ABORT" *> (AbortWork <$ symbol "WORK"
---                        <|> AbortTransaction <$ symbol "TRANSACTION")
-
-
--- --------------------------------------------------------------------------------
--- data AlterAggregate = AlterAggregate QualifiedName [Type] AlterAggregateOperation
---   deriving (Show)
-
--- data AlterAggregateOperation = RenameTo QualifiedName
---                              | ChangeOwnerTo Identifier
---                              | SetSchemaTo Identifier
---   deriving (Show)
-
--- alterAggregate :: TokenParsing m => m AlterAggregate
--- alterAggregate =
---   AlterAggregate
---     <$> (traverse_ symbol (words "ALTER AGGREGATE") *> qualifiedName)
---     <*> parens (commaSep dataType)
---     <*> (rename <|> changeOwner) -- <|> setSchema)
---  where
---   rename = RenameTo <$> ((traverse_ symbol (words "RENAME TO")) *> identifier)
---   changeOwner = ChangeOwnerTo <$> ((traverse_ symbol (words "OWNER TO")) *> identifier)
-
-
--- --------------------------------------------------------------------------------
--- data AlterAggregate = AlterAggregate QualifiedName [Type] AlterAggregateOperation
---   deriving (Show)
-
--- data AlterAggregateOperation = RenameTo QualifiedName
---                              | ChangeOwnerTo Identifier
---                              | SetSchemaTo Identifier
---   deriving (Show)
-
--- alterAggregate :: TokenParsing m => m AlterAggregate
--- alterAggregate =
---   AlterAggregate
---     <$> (traverse_ symbol (words "ALTER AGGREGATE") *> qualifiedName)
---     <*> parens (commaSep dataType)
---     <*> (rename <|> changeOwner) -- <|> setSchema)
---  where
---   rename = RenameTo <$> ((traverse_ symbol (words "RENAME TO")) *> identifier)
---   changeOwner = ChangeOwnerTo <$> ((traverse_ symbol (words "OWNER TO")) *> identifier)
-
-
--- --------------------------------------------------------------------------------
--- qualifiedName :: TokenParsing m => m QualifiedName
--- qualifiedName = identifier
-
--- dataType :: TokenParsing m => m Type
--- dataType = identifier
-
--- data Insert = Insert Identifier [Identifier] [Tuple]
---   deriving (Show)
-
--- data Tuple = Tuple [Value]
---   deriving (Show)
-
--- data Value = String String
---   deriving (Show)
-
--- insert :: (Monad m, TokenParsing m) => m Insert
--- insert = do
---   mapM_ symbol (words "INSERT INTO")
---   Insert
---     <$> identifier
---     <*> parens (commaSep identifier)
---     <*> (symbol "VALUES" *> commaSep1 (Tuple <$> parens (commaSep1 value)))
 
 value :: TokenParsing m => m String
 value = between (char '\'') (char '\'') strParser
@@ -354,3 +295,7 @@ identifier :: TokenParsing m => m Identifier
 identifier = token (concat <$> sequenceA [ pure <$> letter
                                          , many (alphaNum <|> oneOf "$_")
                                          ]) <?> "identifier"
+
+analyze :: TokenParsing m => m Statement
+analyze = Analyze <$> (symbol "ANALYZE" *> ( (Verbose <$ symbol "VERBOSE") <|> pure Quiet))
+                  <*> ( (Relation <$> identifier <*> optional (parens (commaSep identifier)))  <|> pure Everything)
