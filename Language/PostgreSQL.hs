@@ -42,7 +42,7 @@ data Statement =
   | Analyze Verbosity AnalyzeScope
   | CheckPoint
   | ClosePortal CloseTarget
-  | Cluster -- TODO (til end)
+  | Cluster Verbosity ClusterScope
   | Comment
   | ConstraintSet
   | Copy
@@ -168,10 +168,13 @@ data IsolationLevel = ReadUncommitted | ReadCommitted | RepeatableRead | Seriali
 data Verbosity = Verbose | Quiet
   deriving (Eq, Show)
 
-data AnalyzeScope = Everything | Relation Identifier (Maybe [Identifier])
+data AnalyzeScope = AnalyzeEverything | AnalyzeRelation Identifier (Maybe [Identifier])
   deriving (Eq, Show)
 
 data CloseTarget = Cursor Identifier | CloseAll
+  deriving (Eq, Show)
+
+data ClusterScope = ClusterEverything | ClusterRelation Identifier (Maybe Identifier)
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -300,8 +303,10 @@ identifier = token (concat <$> sequenceA [ pure <$> letter
                                          ]) <?> "identifier"
 
 analyze :: TokenParsing m => m Statement
-analyze = Analyze <$> (symbol "ANALYZE" *> ( (Verbose <$ symbol "VERBOSE") <|> pure Quiet))
-                  <*> ( (Relation <$> identifier <*> optional (parens (commaSep identifier)))  <|> pure Everything)
+analyze = Analyze <$> (symbol "ANALYZE" *> verbosity)
+                  <*> asum [ AnalyzeRelation <$> identifier <*> optional (parens (commaSep identifier))
+                           , pure AnalyzeEverything
+                           ]
 
 
 checkPoint :: TokenParsing m => m Statement
@@ -312,3 +317,15 @@ closePortal :: TokenParsing m => m Statement
 closePortal = ClosePortal <$> (symbol "CLOSE" *> asum [ CloseAll <$ symbol "ALL"
                                                       , Cursor <$> identifier
                                                       ])
+
+
+cluster :: TokenParsing m => m Statement
+cluster = Cluster <$> (symbol "CLUSTER" *> verbosity)
+                  <*> asum [ try $ flip ClusterRelation <$> (Just <$> identifier) <*> (symbol "ON" *> identifier)
+                           , ClusterRelation <$> identifier <*> optional (symbol "USING" *> identifier)
+                           , pure ClusterEverything
+                           ]
+
+
+verbosity :: TokenParsing m => m Verbosity
+verbosity = Verbose <$ (symbol "VERBOSE") <|> pure Quiet

@@ -27,15 +27,21 @@ main = defaultMain $
     , (alterDatabaseSet, "ALTER DATABASE foo RESET waffle", AlterDatabaseSet "foo" (Reset (Variable "waffle")))
     , (alterDatabaseSet, "ALTER DATABASE foo RESET ALL", AlterDatabaseSet "foo" (Reset ResetAll))
 
-    , (analyze, "ANALYZE", Analyze Quiet Everything)
-    , (analyze, "ANALYZE VERBOSE", Analyze Verbose Everything)
-    , (analyze, "ANALYZE VERBOSE foo", Analyze Verbose (Relation "foo" Nothing))
-    , (analyze, "ANALYZE VERBOSE foo (bar, baz)", Analyze Verbose (Relation "foo" (Just ["bar", "baz"])))
+    , (analyze, "ANALYZE", Analyze Quiet AnalyzeEverything)
+    , (analyze, "ANALYZE VERBOSE", Analyze Verbose AnalyzeEverything)
+    , (analyze, "ANALYZE VERBOSE foo", Analyze Verbose (AnalyzeRelation "foo" Nothing))
+    , (analyze, "ANALYZE VERBOSE foo (bar, baz)", Analyze Verbose (AnalyzeRelation "foo" (Just ["bar", "baz"])))
 
     , (checkPoint, "CHECKPOINT", CheckPoint)
 
     , (closePortal, "CLOSE foo", ClosePortal (Cursor "foo"))
     , (closePortal, "CLOSE ALL", ClosePortal CloseAll)
+
+    , (cluster, "CLUSTER VERBOSE", Cluster Verbose ClusterEverything)
+    , (cluster, "CLUSTER", Cluster Quiet ClusterEverything)
+    , (cluster, "CLUSTER foo USING bar", Cluster Quiet (ClusterRelation "foo" (Just "bar")))
+    , (cluster, "CLUSTER foo", Cluster Quiet (ClusterRelation "foo" Nothing))
+    , (cluster, "CLUSTER bar ON foo", Cluster Quiet (ClusterRelation "foo" (Just "bar")))
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
