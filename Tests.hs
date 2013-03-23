@@ -42,6 +42,9 @@ main = defaultMain $
     , (cluster, "CLUSTER foo USING bar", Cluster Quiet (ClusterRelation "foo" (Just "bar")))
     , (cluster, "CLUSTER foo", Cluster Quiet (ClusterRelation "foo" Nothing))
     , (cluster, "CLUSTER bar ON foo", Cluster Quiet (ClusterRelation "foo" (Just "bar")))
+
+    , (constraintsSet, "SET CONSTRAINTS ALL DEFERRED", ConstraintsSet ConstraintsEverything Deferred)
+    , (constraintsSet, "SET CONSTRAINTS foo, bar IMMEDIATE", ConstraintsSet (ConstraintsRelations ["foo", "bar"]) Immediate)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

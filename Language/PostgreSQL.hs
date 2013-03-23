@@ -43,9 +43,9 @@ data Statement =
   | CheckPoint
   | ClosePortal CloseTarget
   | Cluster Verbosity ClusterScope
-  | Comment
-  | ConstraintSet
-  | Copy
+  | Comment -- TODO
+  | ConstraintsSet ConstraintsSetScope ConstraintSetting
+  | Copy  -- TODO and on
   | CreateAs
   | CreateAssert
   | CreateCast
@@ -177,13 +177,19 @@ data CloseTarget = Cursor Identifier | CloseAll
 data ClusterScope = ClusterEverything | ClusterRelation Identifier (Maybe Identifier)
   deriving (Eq, Show)
 
+data ConstraintsSetScope = ConstraintsEverything | ConstraintsRelations [Identifier]
+  deriving (Eq, Show)
+
+data ConstraintSetting = Immediate | Deferred
+  deriving (Eq, Show)
+
 alterEventTrigger :: TokenParsing m => m Statement
 alterEventTrigger =
-  AlterEventTrigger <$> (traverse symbol (words "ALTER EVENT TRIGGER") *> identifier)
+  AlterEventTrigger <$> (symbols "ALTER EVENT TRIGGER" *> identifier)
                     <*> enableTrigger
  where
-  enableTrigger = (try $ EnableReplica <$ traverse symbol (words "ENABLE REPLICA"))
-              <|> (try $ EnableAlways <$ traverse symbol (words "ENABLE ALWAYS"))
+  enableTrigger = (try $ EnableReplica <$ symbols "ENABLE REPLICA")
+              <|> (try $ EnableAlways <$ symbols "ENABLE ALWAYS")
               <|> (Enable <$ symbol "ENABLE")
               <|> (Disable <$ symbol "DISABLE")
 
@@ -191,20 +197,20 @@ alterEventTrigger =
 
 alterDatabase :: TokenParsing m => m Statement
 alterDatabase =
-  AlterDatabase <$> (traverse symbol (words "ALTER DATABASE") *> identifier)
+  AlterDatabase <$> (symbols "ALTER DATABASE" *> identifier)
                 <*> alteration
  where
   alteration = alterSetting <|> setTableSpace
 
   alterSetting = AlterDatabaseSetting <$> (optional (symbol "WITH") *> some setting)
-    where setting = ConnectionLimit <$> (traverse symbol (words "CONNECTION LIMIT") *> optional (symbolic '=') *> integer)
+    where setting = ConnectionLimit <$> (symbols "CONNECTION LIMIT" *> optional (symbolic '=') *> integer)
 
-  setTableSpace = SetTableSpace <$> (traverse symbol (words "SET TABLESPACE") *> identifier)
+  setTableSpace = SetTableSpace <$> (symbols "SET TABLESPACE" *> identifier)
 
 
 alterDatabaseSet :: TokenParsing m => m Statement
 alterDatabaseSet =
-  AlterDatabaseSet <$> (traverse symbol (words "ALTER DATABASE") *> identifier)
+  AlterDatabaseSet <$> (symbols "ALTER DATABASE" *> identifier)
                    <*> ((symbol "SET" *> setRest) <|> variableReset)
  where
   setRest = asum [ transactionMode
@@ -222,25 +228,25 @@ alterDatabaseSet =
     where
       transactionModes = sepBy1 transactionModeItem (void comma <|> void whiteSpace)
         where
-          transactionModeItem = asum [ traverse symbol (words "ISOLATION LEVEL") *> isolationLevel
+          transactionModeItem = asum [ symbols "ISOLATION LEVEL" *> isolationLevel
                                      , ReadWrite <$> (symbol "READ" *> asum [ True <$ symbol "WRITE"
                                                                             , False <$ symbol "ONLY"
                                                                             ])
                                      , Deferrable <$> asum [ True <$ symbol "DEFERRABLE"
-                                                           , False <$ traverse symbol (words "NOT DEFERRABLE")
+                                                           , False <$ symbols "NOT DEFERRABLE"
                                                            ]
                                      ]
             where
-              isolationLevel = IsolationLevel <$> asum [ try (ReadUncommitted <$ traverse symbol (words "READ UNCOMMITTED"))
-                                                       , ReadCommitted <$ traverse symbol (words "READ COMMITTED")
-                                                       , RepeatableRead <$ traverse symbol (words "REPEATABLE READ")
+              isolationLevel = IsolationLevel <$> asum [ try $ ReadUncommitted <$ symbols "READ UNCOMMITTED"
+                                                       , ReadCommitted <$ symbols "READ COMMITTED"
+                                                       , RepeatableRead <$ symbols "REPEATABLE READ"
                                                        , Serializable <$ symbol "SERIALIZABLE"
                                                        ]
 
       transactionMode = TransactionMode <$> (symbol "TRANSACTION" *> transactionModes)
 
       sessionCharacteristics = SessionCharacteristics <$>
-        (traverse symbol (words "SESSION CHARACTERISTICS") *> transactionModes)
+        (symbols "SESSION CHARACTERISTICS" *> transactionModes)
 
       varTo = SetVariable <$> (varName <* ((void $ symbolic '=') <|> (void $ symbol "TO"))) <*> (def <|> varList)
         where
@@ -252,7 +258,7 @@ alterDatabaseSet =
                                    ]
               stringLit = String <$> value
 
-      varFromCurrent = SetVariable <$> varName <*> (Current <$ traverse symbol (words "FROM CURRENT"))
+      varFromCurrent = SetVariable <$> varName <*> (Current <$ symbols "FROM CURRENT")
 
       timeZone = empty -- TODO equiv. to SET timezone =
 
@@ -270,9 +276,9 @@ alterDatabaseSet =
 
   variableReset = symbol "RESET" *>
     (Reset <$> asum [ ResetAll <$ symbol "ALL"
-                    , Variable "timezone" <$ traverse symbol (words "TIME ZONE")
-                    , Variable "transaction_isolation" <$ traverse symbol (words "TRANSACTION ISOLATION LEVEL")
-                    , Variable "session_authorization" <$ traverse symbol (words "SESSION AUTHORIZATION")
+                    , Variable "timezone" <$ symbols "TIME ZONE"
+                    , Variable "transaction_isolation" <$ symbols "TRANSACTION ISOLATION LEVEL"
+                    , Variable "session_authorization" <$ symbols "SESSION AUTHORIZATION"
                     , Variable <$> identifier
                     ])
 
@@ -329,3 +335,15 @@ cluster = Cluster <$> (symbol "CLUSTER" *> verbosity)
 
 verbosity :: TokenParsing m => m Verbosity
 verbosity = Verbose <$ (symbol "VERBOSE") <|> pure Quiet
+
+constraintsSet :: TokenParsing m => m Statement
+constraintsSet = ConstraintsSet <$> (symbols "SET CONSTRAINTS" *> asum [ ConstraintsEverything <$ symbol "ALL"
+                                                                       , ConstraintsRelations <$> commaSep identifier
+                                                                       ])
+                                <*> constraintSetMode
+  where constraintSetMode = asum [ Deferred <$ symbol "DEFERRED"
+                                 , Immediate <$ symbol "IMMEDIATE"
+                                 ]
+
+symbols :: TokenParsing m => String -> m [String]
+symbols = traverse symbol . words
