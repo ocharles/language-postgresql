@@ -4,6 +4,7 @@ import Prelude
 import Control.Applicative
 import Control.Monad (void)
 import Data.Foldable (asum, traverse_)
+import Data.Maybe (isJust)
 import Data.Monoid (mappend, mconcat)
 import Data.Traversable (mapM, sequenceA, traverse)
 import Text.Parser.Char
@@ -45,11 +46,11 @@ data Statement =
   | Cluster Verbosity ClusterScope
   | Comment -- TODO
   | ConstraintsSet ConstraintsSetScope ConstraintSetting
-  | Copy  -- TODO and on
-  | CreateAs
-  | CreateAssert
-  | CreateCast
-  | CreateConversion
+  | Copy -- TODO
+  | CreateAs -- TODO
+  | CreateAssert -- TODO - not even implemented by PG yet?
+  | CreateCast  -- TODO and on
+  | CreateConversion Bool Identifier Identifier Identifier Identifier
   | CreateDomain
   | CreateExtension
   | CreateForeignDataWrapper
@@ -347,3 +348,15 @@ constraintsSet = ConstraintsSet <$> (symbols "SET CONSTRAINTS" *> asum [ Constra
 
 symbols :: TokenParsing m => String -> m [String]
 symbols = traverse symbol . words
+
+
+createConversion :: TokenParsing m => m Statement
+createConversion = CreateConversion <$> (symbols "CREATE CONVERSION" *> (isJust <$> optional (symbol "DEFAULT")))
+                                    <*> identifier
+                                    <*> (symbol "FOR" *> sconst)
+                                    <*> (symbol "TO" *> sconst)
+                                    <*> (symbol "FROM" *> identifier)
+
+
+sconst :: TokenParsing m => m String
+sconst = token (between (char '\'') (char '\'') (many $ noneOf "'"))

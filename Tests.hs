@@ -45,6 +45,8 @@ main = defaultMain $
 
     , (constraintsSet, "SET CONSTRAINTS ALL DEFERRED", ConstraintsSet ConstraintsEverything Deferred)
     , (constraintsSet, "SET CONSTRAINTS foo, bar IMMEDIATE", ConstraintsSet (ConstraintsRelations ["foo", "bar"]) Immediate)
+
+    , (createConversion, "CREATE CONVERSION myconv FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8", CreateConversion False "myconv" "LATIN1" "UTF8" "iso8859_1_to_utf8")
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
