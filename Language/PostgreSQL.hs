@@ -49,9 +49,9 @@ data Statement =
   | Copy -- TODO
   | CreateAs -- TODO
   | CreateAssert -- TODO - not even implemented by PG yet?
-  | CreateCast  -- TODO and on
+  | CreateCast
   | CreateConversion Bool Identifier Identifier Identifier Identifier
-  | CreateDomain
+  | CreateDomain Identifier Identifier  -- TODO constraints
   | CreateExtension
   | CreateForeignDataWrapper
   | CreateForeignServer
@@ -360,3 +360,8 @@ createConversion = CreateConversion <$> (symbols "CREATE CONVERSION" *> (isJust 
 
 sconst :: TokenParsing m => m String
 sconst = token (between (char '\'') (char '\'') (many $ noneOf "'"))
+
+
+createDomain :: TokenParsing m => m Statement
+createDomain = CreateDomain <$> (symbols "CREATE DOMAIN" *> identifier)
+                            <*> (optional (symbol "AS") *> identifier)
