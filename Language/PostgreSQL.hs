@@ -7,6 +7,7 @@ import Data.Foldable (asum, traverse_)
 import Data.Maybe (isJust)
 import Data.Monoid (mappend, mconcat)
 import Data.Traversable (mapM, sequenceA, traverse)
+import Data.Void (Void)
 import Text.Parser.Char
 import Text.Parser.Combinators
 import Text.Parser.Token
@@ -53,8 +54,8 @@ data Statement =
   | CreateConversion Bool Identifier Identifier Identifier Identifier
   | CreateDomain Identifier Identifier  -- TODO constraints
   | CreateExtension Identifier [ExtensionOption]
-  | CreateForeignDataWrapper
-  | CreateForeignServer
+  | CreateForeignDataWrapper Identifier [ForeignDataWrapperOption] [Void] -- TODO Handlers, validators, generic options
+  | CreateForeignServer -- TODO and on
   | CreateForeignTable
   | CreateFunction
   | CreateGroup
@@ -185,6 +186,9 @@ data ConstraintSetting = Immediate | Deferred
   deriving (Eq, Show)
 
 data ExtensionOption = Schema Identifier | Version String | OldVersion String
+  deriving (Eq, Show)
+
+data ForeignDataWrapperOption = Validator (Maybe Void) | Handler (Maybe Void)
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -376,3 +380,14 @@ createExtension = CreateExtension <$> (symbols "CREATE EXTENSION" *> identifier)
                                                  , Version <$> (symbol "VERSION" *> sconst)
                                                  , OldVersion <$> (symbol "FROM" *> sconst)
                                                  ])
+
+
+createForeignDataWrapper :: TokenParsing m => m Statement
+createForeignDataWrapper = CreateForeignDataWrapper
+    <$> (symbols "CREATE FOREIGN DATA WRAPPER" *> identifier)
+    <*> (many fdwOption)
+    <*> genericOptions
+  where fdwOption = asum [ try $ Handler Nothing <$ symbols "NO HANDLER"
+                         , Validator Nothing <$ symbols "NO VALIDATOR"
+                         ]
+        genericOptions = pure []

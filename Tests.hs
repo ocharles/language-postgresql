@@ -52,6 +52,8 @@ main = defaultMain $
     -- , (createDomain, "CREATE DOMAIN dcheck varchar(15) NOT NULL CHECK (VALUE = 'a' OR VALUE = 'c' OR VALUE = 'd')", CreateDomain "dcheck" "varchar(15)" [NotNull, Check ...]) TODO
 
     , (createExtension, "CREATE EXTENSION cube SCHEMA public VERSION '1.9' FROM '1.8'", CreateExtension "cube" [Schema "public", Version "1.9", OldVersion "1.8"])
+
+    , (createForeignDataWrapper, "CREATE FOREIGN DATA WRAPPER mongo NO VALIDATOR NO HANDLER", CreateForeignDataWrapper "mongo" [Validator Nothing, Handler Nothing] [])
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
