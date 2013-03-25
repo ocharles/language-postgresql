@@ -52,7 +52,7 @@ data Statement =
   | CreateCast
   | CreateConversion Bool Identifier Identifier Identifier Identifier
   | CreateDomain Identifier Identifier  -- TODO constraints
-  | CreateExtension
+  | CreateExtension Identifier [ExtensionOption]
   | CreateForeignDataWrapper
   | CreateForeignServer
   | CreateForeignTable
@@ -182,6 +182,9 @@ data ConstraintsSetScope = ConstraintsEverything | ConstraintsRelations [Identif
   deriving (Eq, Show)
 
 data ConstraintSetting = Immediate | Deferred
+  deriving (Eq, Show)
+
+data ExtensionOption = Schema Identifier | Version String | OldVersion String
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -365,3 +368,11 @@ sconst = token (between (char '\'') (char '\'') (many $ noneOf "'"))
 createDomain :: TokenParsing m => m Statement
 createDomain = CreateDomain <$> (symbols "CREATE DOMAIN" *> identifier)
                             <*> (optional (symbol "AS") *> identifier)
+
+
+createExtension :: TokenParsing m => m Statement
+createExtension = CreateExtension <$> (symbols "CREATE EXTENSION" *> identifier)
+                                  <*> many (asum [ Schema <$> (symbol "SCHEMA" *> identifier)
+                                                 , Version <$> (symbol "VERSION" *> sconst)
+                                                 , OldVersion <$> (symbol "FROM" *> sconst)
+                                                 ])
