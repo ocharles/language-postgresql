@@ -61,6 +61,8 @@ main = defaultMain $
 
     , (unlisten, "UNLISTEN foo_event", Unlisten (UnlistenEvent "foo_event"))
     , (unlisten, "UNLISTEN '*'", Unlisten UnlistenEverything)
+
+    , (dropAssert, "DROP ASSERTION waffles RESTRICT", DropAssert "waffles" DropRestrict)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

@@ -80,7 +80,7 @@ data Statement =
   | Delete -- TODO
   | Discard -- TODO
   | Do -- TODO
-  | DropAssert -- TODO
+  | DropAssert Identifier DropBehavior
   | DropCast -- TODO
   | DropForeignDataWrapper -- TODO
   | DropForeignServer -- TODO
@@ -192,6 +192,9 @@ data ForeignDataWrapperOption = Validator (Maybe Void) | Handler (Maybe Void)
   deriving (Eq, Show)
 
 data UnlistenScope = UnlistenEvent Identifier | UnlistenEverything
+  deriving (Eq, Show)
+
+data DropBehavior = DropCascade | DropRestrict
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -419,3 +422,11 @@ unlisten = symbol "UNLISTEN" *>
   (Unlisten <$> asum [ UnlistenEverything <$ token (string "'*'") -- TODO -- too restrictive?
                      , UnlistenEvent <$> identifier
                      ])
+
+
+dropAssert :: TokenParsing m => m Statement
+dropAssert = DropAssert <$> (symbols "DROP ASSERTION" *> identifier)
+                        <*> asum [ DropCascade <$ symbol "CASCADE"
+                                 , DropRestrict <$ symbol "RESTRICT"
+                                 ]
+
