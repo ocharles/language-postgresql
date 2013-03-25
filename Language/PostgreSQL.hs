@@ -55,8 +55,8 @@ data Statement =
   | CreateDomain Identifier Identifier  -- TODO constraints
   | CreateExtension Identifier [ExtensionOption]
   | CreateForeignDataWrapper Identifier [ForeignDataWrapperOption] [Void] -- TODO Handlers, validators, generic options
-  | CreateForeignServer -- TODO and on
-  | CreateForeignTable
+  | CreateForeignServer String (Maybe String) (Maybe String) Identifier [Void] -- TODO generic options, better types?
+  | CreateForeignTable -- TODO and on
   | CreateFunction
   | CreateGroup
   | CreateMaterializedView
@@ -390,4 +390,18 @@ createForeignDataWrapper = CreateForeignDataWrapper
   where fdwOption = asum [ try $ Handler Nothing <$ symbols "NO HANDLER"
                          , Validator Nothing <$ symbols "NO VALIDATOR"
                          ]
-        genericOptions = pure []
+
+
+genericOptions :: TokenParsing m => m [Void]
+genericOptions = pure []
+
+
+createForeignServer :: TokenParsing m => m Statement
+createForeignServer = CreateForeignServer
+    <$> (symbols "CREATE SERVER" *> identifier)
+    <*> optional fsType
+    <*> optional foreignServerVersion
+    <*> (symbols "FOREIGN DATA WRAPPER" *> identifier)
+    <*> genericOptions
+  where fsType = symbol "TYPE" *> sconst
+        foreignServerVersion = symbol "VERSION" *> sconst
