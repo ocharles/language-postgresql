@@ -56,80 +56,80 @@ data Statement =
   | CreateExtension Identifier [ExtensionOption]
   | CreateForeignDataWrapper Identifier [ForeignDataWrapperOption] [Void] -- TODO Handlers, validators, generic options
   | CreateForeignServer String (Maybe String) (Maybe String) Identifier [Void] -- TODO generic options, better types?
-  | CreateForeignTable -- TODO and on
-  | CreateFunction
-  | CreateGroup
-  | CreateMaterializedView
-  | CreateOperatorClass
-  | CreateOperatorFamily
-  | AlterOperatorFamily
-  | CreatePLang
-  | CreateSchema
-  | CreateSequence
-  | Create
-  | CreateTableSpace
-  | CreateTrigger
-  | CreateEventTrigger
-  | CreateRole
-  | CreateUser
-  | CreateUserMapping
-  | CreateDatabase
-  | Deallocate
-  | DeclareCursor
-  | Define
-  | Delete
-  | Discard
-  | Do
-  | DropAssert
-  | DropCast
-  | DropForeignDataWrapper
-  | DropForeignServer
-  | DropGroup
-  | DropOperatorClass
-  | DropOperatorFamily
-  | DropOwned
-  | DropPLang
-  | DropRule
-  | Drop
-  | DropTableSpace
-  | DropTrigger
-  | DropRole
-  | DropUser
-  | DropUserMapping
-  | DropDatabase
-  | Execute
-  | Explain
-  | Fetch
-  | Grant
-  | GrantRole
-  | Index
-  | Insert
-  | Listen
-  | RefreshMaterializedView
-  | Load
-  | Lock
-  | Notify
-  | Prepare
-  | ReassignOwned
-  | Reindex
-  | RemoveAggregate
-  | RemoveFunction
-  | RemoveOperator
-  | Rename
-  | Revoke
-  | RevokeRole
-  | Rule
-  | SecurityLabel
-  | Select
-  | Transaction
-  | Truncate
-  | Unlisten
-  | Update
-  | Vacuum
-  | VariableReset
-  | VariableSet
-  | VariableShow
-  | View
+  | CreateForeignTable -- TODO
+  | CreateFunction -- TODO
+  | CreateGroup -- TODO
+  | CreateMaterializedView -- TODO
+  | CreateOperatorClass -- TODO
+  | CreateOperatorFamily -- TODO
+  | AlterOperatorFamily -- TODO
+  | CreatePLang -- TODO
+  | CreateSchema -- TODO
+  | CreateSequence -- TODO
+  | Create -- TODO
+  | CreateTableSpace -- TODO
+  | CreateTrigger -- TODO
+  | CreateEventTrigger -- TODO
+  | CreateRole -- TODO
+  | CreateUser -- TODO
+  | CreateUserMapping -- TODO
+  | CreateDatabase -- TODO
+  | Deallocate -- TODO
+  | DeclareCursor -- TODO
+  | Define -- TODO
+  | Delete -- TODO
+  | Discard -- TODO
+  | Do -- TODO
+  | DropAssert -- TODO
+  | DropCast -- TODO
+  | DropForeignDataWrapper -- TODO
+  | DropForeignServer -- TODO
+  | DropGroup -- TODO
+  | DropOperatorClass -- TODO
+  | DropOperatorFamily -- TODO
+  | DropOwned -- TODO
+  | DropPLang -- TODO
+  | DropRule -- TODO
+  | Drop -- TODO
+  | DropTableSpace -- TODO
+  | DropTrigger -- TODO
+  | DropRole -- TODO
+  | DropUser -- TODO
+  | DropUserMapping -- TODO
+  | DropDatabase -- TODO
+  | Execute -- TODO
+  | Explain -- TODO
+  | Fetch -- TODO
+  | Grant -- TODO
+  | GrantRole -- TODO
+  | Index -- TODO
+  | Insert -- TODO
+  | Listen Identifier
+  | RefreshMaterializedView -- TODO
+  | Load -- TODO
+  | Lock -- TODO
+  | Notify -- TODO
+  | Prepare -- TODO
+  | ReassignOwned -- TODO
+  | Reindex -- TODO
+  | RemoveAggregate -- TODO
+  | RemoveFunction -- TODO
+  | RemoveOperator -- TODO
+  | Rename -- TODO
+  | Revoke -- TODO
+  | RevokeRole -- TODO
+  | Rule -- TODO
+  | SecurityLabel -- TODO
+  | Select -- TODO
+  | Transaction -- TODO
+  | Truncate -- TODO
+  | Unlisten -- TODO
+  | Update -- TODO
+  | Vacuum -- TODO
+  | VariableReset -- TODO
+  | VariableSet -- TODO
+  | VariableShow -- TODO
+  | View -- TODO
   deriving (Eq, Show)
 
 data TriggerEnable = Enable | EnableReplica | EnableAlways | Disable
@@ -405,3 +405,7 @@ createForeignServer = CreateForeignServer
     <*> genericOptions
   where fsType = symbol "TYPE" *> sconst
         foreignServerVersion = symbol "VERSION" *> sconst
+
+
+listen :: TokenParsing m => m Statement
+listen = Listen <$> (symbol "LISTEN" *> identifier)
