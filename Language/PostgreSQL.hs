@@ -123,7 +123,7 @@ data Statement =
   | Select -- TODO
   | Transaction -- TODO
   | Truncate -- TODO
-  | Unlisten -- TODO
+  | Unlisten UnlistenScope
   | Update -- TODO
   | Vacuum -- TODO
   | VariableReset -- TODO
@@ -189,6 +189,9 @@ data ExtensionOption = Schema Identifier | Version String | OldVersion String
   deriving (Eq, Show)
 
 data ForeignDataWrapperOption = Validator (Maybe Void) | Handler (Maybe Void)
+  deriving (Eq, Show)
+
+data UnlistenScope = UnlistenEvent Identifier | UnlistenEverything
   deriving (Eq, Show)
 
 alterEventTrigger :: TokenParsing m => m Statement
@@ -409,3 +412,10 @@ createForeignServer = CreateForeignServer
 
 listen :: TokenParsing m => m Statement
 listen = Listen <$> (symbol "LISTEN" *> identifier)
+
+
+unlisten :: TokenParsing m => m Statement
+unlisten = symbol "UNLISTEN" *>
+  (Unlisten <$> asum [ UnlistenEverything <$ token (string "'*'") -- TODO -- too restrictive?
+                     , UnlistenEvent <$> identifier
+                     ])

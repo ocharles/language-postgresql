@@ -58,6 +58,9 @@ main = defaultMain $
     , (createForeignServer, "CREATE SERVER s5 TYPE 'oracle' VERSION '15.0' FOREIGN DATA WRAPPER foo", CreateForeignServer "s5" (Just "oracle") (Just "15.0") "foo" [])
 
     , (listen, "LISTEN foo_event", Listen "foo_event")
+
+    , (unlisten, "UNLISTEN foo_event", Unlisten (UnlistenEvent "foo_event"))
+    , (unlisten, "UNLISTEN '*'", Unlisten UnlistenEverything)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
