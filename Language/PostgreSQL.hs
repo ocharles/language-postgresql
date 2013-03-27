@@ -132,6 +132,33 @@ data Statement =
   | View -- TODO
   deriving (Eq, Show)
 
+statements :: TokenParsing m => m [Statement]
+statements = statement `endBy` (void semi <|> eof)
+
+statement :: TokenParsing m => m Statement
+statement = asum [ try alterEventTrigger
+                 , try alterDatabase
+                 , try alterDatabaseSet
+                 , analyze
+                 , try checkPoint
+                 , try closePortal
+                 , try cluster
+                 , try constraintsSet
+                 , try createConversion
+                 , try createDomain
+                 , try createExtension
+                 , try createForeignDataWrapper
+                 , createForeignServer
+                 , try dropAssert
+                 , try dropCast
+                 , try dropForeignDataWrapper
+                 , try dropForeignServer
+                 , try dropGroup
+                 , dropOperatorClass
+                 , listen
+                 , unlisten
+                 ]
+
 data TriggerEnable = Enable | EnableReplica | EnableAlways | Disable
   deriving (Eq, Show)
 
