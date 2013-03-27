@@ -65,6 +65,10 @@ main = defaultMain $
     , (dropAssert, "DROP ASSERTION waffles RESTRICT", DropAssert "waffles" DropRestrict)
 
     , (dropCast, "DROP CAST (testdomain1 AS testdomain3b)", DropCast False "testdomain1" "testdomain3b" DropRestrict)
+
+    , (dropForeignDataWrapper, "DROP FOREIGN DATA WRAPPER IF EXISTS test_fdw_exists", DropForeignDataWrapper True "test_fdw_exists" DropRestrict)
+
+    , (dropForeignServer, "DROP SERVER s9 CASCADE", DropForeignServer False "s9" DropCascade)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

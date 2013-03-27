@@ -83,7 +83,7 @@ data Statement =
   | DropAssert Identifier DropBehavior
   | DropCast Bool Identifier Identifier DropBehavior
   | DropForeignDataWrapper Bool Identifier DropBehavior
-  | DropForeignServer -- TODO
+  | DropForeignServer Bool Identifier DropBehavior
   | DropGroup -- TODO
   | DropOperatorClass -- TODO
   | DropOperatorFamily -- TODO
@@ -451,3 +451,8 @@ dropForeignDataWrapper :: TokenParsing m => m Statement
 dropForeignDataWrapper = DropForeignDataWrapper <$> (symbols "DROP FOREIGN DATA WRAPPER" *> ifExists)
                                                 <*> identifier
                                                 <*> dropBehavior
+
+dropForeignServer :: TokenParsing m => m Statement
+dropForeignServer = DropForeignServer <$> (symbols "DROP SERVER" *> ifExists)
+                                      <*> identifier
+                                      <*> dropBehavior
