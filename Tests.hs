@@ -69,6 +69,8 @@ main = defaultMain $
     , (dropForeignDataWrapper, "DROP FOREIGN DATA WRAPPER IF EXISTS test_fdw_exists", DropForeignDataWrapper True "test_fdw_exists" DropRestrict)
 
     , (dropForeignServer, "DROP SERVER s9 CASCADE", DropForeignServer False "s9" DropCascade)
+
+    , (dropGroup, "DROP GROUP IF EXISTS tg1, tg2", DropGroup True ["tg1", "tg2"])
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
