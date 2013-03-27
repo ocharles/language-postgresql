@@ -71,6 +71,8 @@ main = defaultMain $
     , (dropForeignServer, "DROP SERVER s9 CASCADE", DropForeignServer False "s9" DropCascade)
 
     , (dropGroup, "DROP GROUP IF EXISTS tg1, tg2", DropGroup True ["tg1", "tg2"])
+
+    , (dropOperatorClass, "DROP OPERATOR CLASS IF EXISTS test_operator_class USING btree", DropOperatorClass True "test_operator_class" "btree" DropRestrict)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion
