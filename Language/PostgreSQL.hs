@@ -82,7 +82,7 @@ data Statement =
   | Do -- TODO
   | DropAssert Identifier DropBehavior
   | DropCast Bool Identifier Identifier DropBehavior
-  | DropForeignDataWrapper -- TODO
+  | DropForeignDataWrapper Bool Identifier DropBehavior
   | DropForeignServer -- TODO
   | DropGroup -- TODO
   | DropOperatorClass -- TODO
@@ -435,11 +435,19 @@ dropBehavior = asum [ DropCascade <$ symbol "CASCADE"
                     ]
 
 
+ifExists :: TokenParsing m => m Bool
+ifExists = isJust <$> optional (symbols "IF EXISTS")
+
 dropCast :: TokenParsing m => m Statement
-dropCast = DropCast <$> (isJust <$> (symbols "DROP CAST" *> optional (symbols "IF EXISTS")))
+dropCast = DropCast <$> (symbols "DROP CAST" *> ifExists)
                     `mUncurry` (parens ( (,) <$> identifier <*> (symbol "AS" *> identifier)))
                     <*> dropBehavior
 
 infixl 4 `mUncurry`
 mUncurry :: Applicative m => m (a -> b -> c) -> m (a, b) -> m c
 mUncurry f x = fmap uncurry f <*> x
+
+dropForeignDataWrapper :: TokenParsing m => m Statement
+dropForeignDataWrapper = DropForeignDataWrapper <$> (symbols "DROP FOREIGN DATA WRAPPER" *> ifExists)
+                                                <*> identifier
+                                                <*> dropBehavior
