@@ -63,6 +63,8 @@ main = defaultMain $
     , (unlisten, "UNLISTEN '*'", Unlisten UnlistenEverything)
 
     , (dropAssert, "DROP ASSERTION waffles RESTRICT", DropAssert "waffles" DropRestrict)
+
+    , (dropCast, "DROP CAST (testdomain1 AS testdomain3b)", DropCast False "testdomain1" "testdomain3b" DropRestrict)
     ]
 
 assertParser :: (Eq a, Show a) => Parser a -> String -> a -> Assertion

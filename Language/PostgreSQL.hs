@@ -81,7 +81,7 @@ data Statement =
   | Discard -- TODO
   | Do -- TODO
   | DropAssert Identifier DropBehavior
-  | DropCast -- TODO
+  | DropCast Bool Identifier Identifier DropBehavior
   | DropForeignDataWrapper -- TODO
   | DropForeignServer -- TODO
   | DropGroup -- TODO
@@ -426,7 +426,20 @@ unlisten = symbol "UNLISTEN" *>
 
 dropAssert :: TokenParsing m => m Statement
 dropAssert = DropAssert <$> (symbols "DROP ASSERTION" *> identifier)
-                        <*> asum [ DropCascade <$ symbol "CASCADE"
-                                 , DropRestrict <$ symbol "RESTRICT"
-                                 ]
+                        <*> dropBehavior
 
+dropBehavior :: TokenParsing m => m DropBehavior
+dropBehavior = asum [ DropCascade <$ symbol "CASCADE"
+                    , DropRestrict <$ symbol "RESTRICT"
+                    , pure DropRestrict
+                    ]
+
+
+dropCast :: TokenParsing m => m Statement
+dropCast = DropCast <$> (isJust <$> (symbols "DROP CAST" *> optional (symbols "IF EXISTS")))
+                    `mUncurry` (parens ( (,) <$> identifier <*> (symbol "AS" *> identifier)))
+                    <*> dropBehavior
+
+infixl 4 `mUncurry`
+mUncurry :: Applicative m => m (a -> b -> c) -> m (a, b) -> m c
+mUncurry f x = fmap uncurry f <*> x
