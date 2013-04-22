@@ -96,7 +96,7 @@ data Statement =
   | DropRole -- TODO
   | DropUser -- TODO
   | DropUserMapping -- TODO
-  | DropDatabase -- TODO
+  | DropDatabase Bool Identifier
   | Execute -- TODO
   | Explain -- TODO
   | Fetch -- TODO
@@ -154,7 +154,8 @@ statement = asum [ try alterEventTrigger
                  , try dropForeignDataWrapper
                  , try dropForeignServer
                  , try dropGroup
-                 , dropOperatorClass
+                 , try dropOperatorClass
+                 , dropDatabase
                  , listen
                  , unlisten
                  ]
@@ -494,3 +495,8 @@ dropOperatorClass = DropOperatorClass <$> (symbols "DROP OPERATOR CLASS" *> ifEx
                                       <*> identifier
                                       <*> (symbol "USING" *> identifier)
                                       <*> dropBehavior
+
+
+dropDatabase :: TokenParsing m => m Statement
+dropDatabase = DropDatabase <$> (symbols "DROP DATABASE" *> ifExists)
+                            <*> identifier

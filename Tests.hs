@@ -73,6 +73,8 @@ main = defaultMain $
     , ("DROP GROUP IF EXISTS tg1, tg2", DropGroup True ["tg1", "tg2"])
 
     , ("DROP OPERATOR CLASS IF EXISTS test_operator_class USING btree", DropOperatorClass True "test_operator_class" "btree" DropRestrict)
+
+    , ("DROP DATABASE IF EXISTS fooble", DropDatabase True "fooble")
     ]
 
 assertStatement :: String -> Statement -> Assertion
