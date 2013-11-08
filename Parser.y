@@ -1,5 +1,5 @@
 {
-module Parser (sql) where
+module Parser where
 
 import Lexer (Token(..))
 
@@ -33,7 +33,7 @@ AlterTableCmd
   | ADD COLUMN ColumnDefinition { AddColumn $3 }
 
 ColumnDefinition
-  : ColumnIdentifier Typename { ColumnDefinition $1 $2 }
+  : ColumnIdentifier Typename { ColumnDefinition $1 $2 [] }
 
 ColumnIdentifier : IDENT { $1 }
 
@@ -53,17 +53,21 @@ type ColumnIdentifier = String
 
 type Typename = String
 
-data ColumnDefinition = ColumnDefinition ColumnIdentifier Typename
-  deriving (Show)
+data Thing = Default String
+  deriving (Eq, Show)
+
+data ColumnDefinition = ColumnDefinition ColumnIdentifier Typename [Thing]
+  deriving (Eq, Show)
 
 data Statement
   = AlterTable Relation AlterTableCommand
-  deriving (Show)
+  deriving (Eq, Show)
 
 data AlterTableCommand
   = EnableTrigger TriggerName
   | AddColumn ColumnDefinition
-  deriving (Show)
+  | RenameTo Relation
+  deriving (Eq, Show)
 
 parseError :: [Token] -> a
 parseError = error . show
